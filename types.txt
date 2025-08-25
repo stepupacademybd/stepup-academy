@@ -1,0 +1,51 @@
+export enum Role {
+    Admin = 'Admin',
+    SubAdmin = 'Sub-Admin',
+    Student = 'Student',
+    Teacher = 'Teacher',
+    Staff = 'Staff',
+    Other = 'Other'
+}
+
+export interface User {
+    id: string;
+    name: string;
+    role: Role;
+}
+
+export interface Participant {
+    id: string;
+    name: string;
+    role: Role;
+    phone: string;
+    email: string;
+}
+
+export enum TransactionType {
+    Income = 'Income',
+    Expense = 'Expense'
+}
+
+export enum PaymentMethod {
+    Cash = 'Cash',
+    Bank = 'Bank Transfer',
+    Mobile = 'Mobile Banking'
+}
+
+export interface Transaction {
+    id: string;
+    date: string;
+    type: TransactionType;
+    participantId: string;
+    participantName: string;
+    participantRole: Role;
+    category: string;
+    paymentMethod: PaymentMethod;
+    transactionRef?: string;
+    totalBill: number;
+    discount: number;
+    amountPaid: number;
+    due: number;
+    notes?: string;
+    receiptUrl?: string;
+}

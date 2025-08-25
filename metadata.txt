@@ -1,0 +1,5 @@
+{
+  "name": "StepUp Academy FMS",
+  "description": "A comprehensive Financial Management System (FMS) for StepUp Academy to manage income, expenses, and generate financial reports. The application is bilingual (English/Bengali) and features a dashboard with key performance indicators and charts.",
+  "requestFramePermissions": []
+}
