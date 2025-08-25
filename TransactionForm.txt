@@ -1,0 +1,197 @@
+import React, { useState, useEffect } from 'react';
+import { useLanguage } from '../contexts/LanguageContext';
+import { useData } from '../contexts/DataContext';
+import { Role, TransactionType, PaymentMethod, Participant } from '../types';
+import { CATEGORIES } from '../constants';
+
+const TransactionForm: React.FC = () => {
+    const { t } = useLanguage();
+    const { participants, addTransaction } = useData();
+
+    const [type, setType] = useState<TransactionType>(TransactionType.Income);
+    const [participantRole, setParticipantRole] = useState<Role>(Role.Student);
+    const [participantId, setParticipantId] = useState<string>('');
+    const [selectedParticipant, setSelectedParticipant] = useState<Participant | null>(null);
+    const [category, setCategory] = useState<string>('');
+    const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(PaymentMethod.Cash);
+    const [transactionRef, setTransactionRef] = useState('');
+    const [totalBill, setTotalBill] = useState(0);
+    const [discount, setDiscount] = useState(0);
+    const [amountPaid, setAmountPaid] = useState(0);
+    const [due, setDue] = useState(0);
+    const [notes, setNotes] = useState('');
+    const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+    
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [message, setMessage] = useState('');
+
+    useEffect(() => {
+        setParticipantId('');
+        setSelectedParticipant(null);
+    }, [participantRole]);
+
+    useEffect(() => {
+        const participant = participants.find(p => p.id === participantId);
+        setSelectedParticipant(participant || null);
+    }, [participantId, participants]);
+    
+    useEffect(() => {
+        const dueAmount = totalBill - discount - amountPaid;
+        setDue(dueAmount > 0 ? dueAmount : 0);
+    }, [totalBill, discount, amountPaid]);
+    
+    const getCategories = () => {
+        const mainCategory = type === TransactionType.Income ? 'Income' : 'Expense';
+        const roleKey = participantRole as keyof typeof CATEGORIES[typeof mainCategory];
+        return CATEGORIES[mainCategory][roleKey] || CATEGORIES[mainCategory]['Other'];
+    };
+    
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!selectedParticipant && participantRole !== Role.Other) {
+             setMessage('Please select a participant.');
+             return;
+        }
+        setIsSubmitting(true);
+        setMessage('');
+
+        try {
+            await addTransaction({
+                date,
+                type,
+                participantId: participantId || 'N/A',
+                participantName: selectedParticipant?.name || 'Other',
+                participantRole,
+                category,
+                paymentMethod,
+                transactionRef,
+                totalBill,
+                discount,
+                amountPaid,
+                due,
+                notes,
+            });
+            setMessage('Transaction added successfully!');
+            // Reset form
+            setParticipantId(''); setCategory(''); setTotalBill(0); setDiscount(0); setAmountPaid(0); setNotes('');
+        } catch (error) {
+            setMessage('Failed to add transaction.');
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    return (
+        <form onSubmit={handleSubmit} className="bg-white p-8 rounded-lg shadow space-y-6 max-w-4xl mx-auto">
+            <h2 className="text-2xl font-bold text-brand-dark border-b pb-4">{t('newTransaction')}</h2>
+
+            {message && <div className={`p-4 rounded ${message.includes('success') ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>{message}</div>}
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label className="block text-sm font-medium text-gray-700">{t('transactionType')}</label>
+                    <select value={type} onChange={e => setType(e.target.value as TransactionType)} className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-brand-primary focus:border-brand-primary sm:text-sm rounded-md">
+                        <option value={TransactionType.Income}>{t('income')}</option>
+                        <option value={TransactionType.Expense}>{t('expense')}</option>
+                    </select>
+                </div>
+                <div>
+                    <label className="block text-sm font-medium text-gray-700">{t('participantRole')}</label>
+                    <select value={participantRole} onChange={e => setParticipantRole(e.target.value as Role)} className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-brand-primary focus:border-brand-primary sm:text-sm rounded-md">
+                        <option value={Role.Student}>{t('student')}</option>
+                        <option value={Role.Teacher}>{t('teacher')}</option>
+                        <option value={Role.Staff}>{t('staff')}</option>
+                        <option value={Role.Other}>{t('other')}</option>
+                    </select>
+                </div>
+            </div>
+
+            {participantRole !== Role.Other && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700">{t('participantId')}</label>
+                        <select value={participantId} onChange={e => setParticipantId(e.target.value)} required className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-brand-primary focus:border-brand-primary sm:text-sm rounded-md">
+                           <option value="">{t('selectParticipant')}</option>
+                            {participants.filter(p => p.role === participantRole).map(p => (
+                                <option key={p.id} value={p.id}>{p.name} ({p.id})</option>
+                            ))}
+                        </select>
+                    </div>
+                     {selectedParticipant && (
+                        <div className="bg-gray-50 p-4 rounded-md">
+                             <p><span className="font-semibold">{t('participantName')}:</span> {selectedParticipant.name}</p>
+                             <p><span className="font-semibold">{t('participantContact')}:</span> {selectedParticipant.phone}</p>
+                        </div>
+                     )}
+                </div>
+            )}
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label className="block text-sm font-medium text-gray-700">{t('category')}</label>
+                    <select value={category} onChange={e => setCategory(e.target.value)} required className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-brand-primary focus:border-brand-primary sm:text-sm rounded-md">
+                        <option value="">{t('selectCategory')}</option>
+                        {getCategories()?.map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                </div>
+                <div>
+                     <label className="block text-sm font-medium text-gray-700">{t('date')}</label>
+                     <input type="date" value={date} onChange={e => setDate(e.target.value)} required className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-brand-primary focus:border-brand-primary sm:text-sm rounded-md" />
+                </div>
+            </div>
+
+            <fieldset className="border p-4 rounded-md">
+                <legend className="text-lg font-medium text-gray-900 px-2">{t('paymentDetails')}</legend>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700">{t('paymentMethod')}</label>
+                        <select value={paymentMethod} onChange={e => setPaymentMethod(e.target.value as PaymentMethod)} className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-brand-primary focus:border-brand-primary sm:text-sm rounded-md">
+                            <option value={PaymentMethod.Cash}>{t('cash')}</option>
+                            <option value={PaymentMethod.Bank}>{t('bank')}</option>
+                            <option value={PaymentMethod.Mobile}>{t('mobile')}</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700">{t('transactionId')}</label>
+                        <input type="text" value={transactionRef} onChange={e => setTransactionRef(e.target.value)} className="mt-1 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md" />
+                    </div>
+                </div>
+            </fieldset>
+
+            <fieldset className="border p-4 rounded-md">
+                <legend className="text-lg font-medium text-gray-900 px-2">{t('billDetails')}</legend>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-6 pt-2">
+                     <div>
+                        <label className="block text-sm font-medium text-gray-700">{t('totalBill')}</label>
+                        <input type="number" value={totalBill} onChange={e => setTotalBill(parseFloat(e.target.value) || 0)} required className="mt-1 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md" />
+                    </div>
+                     <div>
+                        <label className="block text-sm font-medium text-gray-700">{t('discount')}</label>
+                        <input type="number" value={discount} onChange={e => setDiscount(parseFloat(e.target.value) || 0)} className="mt-1 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md" />
+                    </div>
+                     <div>
+                        <label className="block text-sm font-medium text-gray-700">{t('amountPaid')}</label>
+                        <input type="number" value={amountPaid} onChange={e => setAmountPaid(parseFloat(e.target.value) || 0)} required className="mt-1 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md" />
+                    </div>
+                     <div>
+                        <label className="block text-sm font-medium text-gray-700">{t('dueAmount')}</label>
+                        <input type="number" value={due} readOnly className="mt-1 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md bg-gray-100" />
+                    </div>
+                </div>
+            </fieldset>
+
+            <div>
+                <label className="block text-sm font-medium text-gray-700">{t('notes')}</label>
+                <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={3} className="mt-1 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"></textarea>
+            </div>
+            
+            <div className="text-right">
+                <button type="submit" disabled={isSubmitting} className="inline-flex justify-center py-2 px-6 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-brand-primary hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-primary disabled:bg-gray-400">
+                    {isSubmitting ? t('generating') : t('submit')}
+                </button>
+            </div>
+        </form>
+    );
+};
+
+export default TransactionForm;

@@ -1,0 +1,40 @@
+import { Participant, Role, Transaction, TransactionType, PaymentMethod } from '../types';
+
+// Mock Data
+let mockParticipants: Participant[] = [
+    { id: 'STU-001', name: 'Saiful Islam', role: Role.Student, phone: '01712345678', email: 'saiful@example.com' },
+    { id: 'STU-002', name: 'Fatima Akter', role: Role.Student, phone: '01812345679', email: 'fatima@example.com' },
+    { id: 'TEA-001', name: 'Rahim Khan', role: Role.Teacher, phone: '01912345680', email: 'rahim@example.com' },
+    { id: 'STA-001', name: 'Karim Sheikh', role: Role.Staff, phone: '01612345681', email: 'karim@example.com' },
+];
+
+let mockTransactions: Transaction[] = [
+    { id: 'TRN-001', date: '2023-10-15', type: TransactionType.Income, participantId: 'STU-001', participantName: 'Saiful Islam', participantRole: Role.Student, category: 'Admission Fee', paymentMethod: PaymentMethod.Cash, totalBill: 5000, discount: 0, amountPaid: 5000, due: 0 },
+    { id: 'TRN-002', date: '2023-10-20', type: TransactionType.Expense, participantId: 'TEA-001', participantName: 'Rahim Khan', participantRole: Role.Teacher, category: 'Salary', paymentMethod: PaymentMethod.Bank, totalBill: 20000, discount: 0, amountPaid: 20000, due: 0 },
+    { id: 'TRN-003', date: '2023-11-05', type: TransactionType.Income, participantId: 'STU-002', participantName: 'Fatima Akter', participantRole: Role.Student, category: 'Monthly Fee', paymentMethod: PaymentMethod.Mobile, totalBill: 1500, discount: 0, amountPaid: 1000, due: 500 },
+];
+
+export const getParticipants = (): Promise<Participant[]> => {
+    return new Promise(resolve => {
+        setTimeout(() => resolve([...mockParticipants]), 500);
+    });
+};
+
+export const getTransactions = (): Promise<Transaction[]> => {
+    return new Promise(resolve => {
+        setTimeout(() => resolve([...mockTransactions]), 500);
+    });
+};
+
+export const addTransaction = (transactionData: Omit<Transaction, 'id'>): Promise<Transaction> => {
+    return new Promise(resolve => {
+        setTimeout(() => {
+            const newTransaction: Transaction = {
+                id: `TRN-${Date.now()}`,
+                ...transactionData,
+            };
+            mockTransactions.unshift(newTransaction);
+            resolve(newTransaction);
+        }, 500);
+    });
+};

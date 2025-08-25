@@ -1,0 +1,84 @@
+import React, { useState, useMemo } from 'react';
+import { useData } from '../contexts/DataContext';
+import { useAuth } from '../contexts/AuthContext';
+import { useLanguage } from '../contexts/LanguageContext';
+import { Transaction, TransactionType, Role } from '../types';
+
+const TransactionHistory: React.FC = () => {
+    const { transactions, loading } = useData();
+    const { user } = useAuth();
+    const { t } = useLanguage();
+    const [searchTerm, setSearchTerm] = useState('');
+
+    const filteredTransactions = useMemo(() => {
+        let userTransactions = transactions;
+        if (user?.role === Role.Student || user?.role === Role.Teacher || user?.role === Role.Staff) {
+            userTransactions = transactions.filter(t => t.participantId === user.id);
+        }
+
+        if (!searchTerm) {
+            return userTransactions;
+        }
+
+        return userTransactions.filter(t => 
+            t.participantName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            t.participantId.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            t.category.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+    }, [transactions, user, searchTerm]);
+
+    if (loading) return <div>{t('loading')}</div>;
+
+    const formatCurrency = (amount: number) => `৳${amount.toLocaleString('en-IN')}`;
+
+    return (
+        <div className="bg-white p-6 rounded-lg shadow">
+            <h2 className="text-2xl font-bold text-brand-dark mb-4">{t('transactionHistory')}</h2>
+            
+            <div className="mb-4">
+                <input
+                    type="text"
+                    placeholder={t('searchPlaceholder')}
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full max-w-sm p-2 border border-gray-300 rounded-md"
+                />
+            </div>
+
+            <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                        <tr>
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('date')}</th>
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('participantName')}</th>
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('category')}</th>
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('transactionType')}</th>
+                            <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">{t('amountPaid')}</th>
+                            <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">{t('dueAmount')}</th>
+                        </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                        {filteredTransactions.map((tr) => (
+                            <tr key={tr.id}>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{tr.date}</td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{tr.participantName}</td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{tr.category}</td>
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                                        tr.type === TransactionType.Income ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                                    }`}>
+                                        {tr.type === TransactionType.Income ? t('income') : t('expense')}
+                                    </span>
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">{formatCurrency(tr.amountPaid)}</td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-red-600 text-right">{formatCurrency(tr.due)}</td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    );
+};
+
+export default TransactionHistory;
